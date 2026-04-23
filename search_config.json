@@ -1,0 +1,8 @@
+{
+    "max_results_per_search": 5,
+    "cache_expiry_hours": 168,
+    "enable_wikipedia": true,
+    "enable_news_search": true,
+    "rate_limit_delay": 0.5,
+    "wolfram_alpha_app_id": ""
+}

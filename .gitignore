@@ -1,0 +1,27 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+env/
+
+# Environment variables and local secrets (IMPORTANT)
+.env
+.env.*
+!.env.example
+jarvis_encryption.key
+jarvis_audit_log.enc
+exported_privacy_data.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# VS Code settings (optional)
+.vscode/
