@@ -88,4 +88,4 @@ python main.py
 This project is licensed under the MIT License.
 
 ---
-*Built with ❤️ by the Jarvis-Py Contributors*
+*Built with ❤️ by the Ritik Jagnit*
