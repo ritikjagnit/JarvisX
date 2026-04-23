@@ -1,0 +1,2 @@
+# Render web preview uses only the Python standard library.
+# Keep desktop dependencies in requirements.txt for local Windows usage.

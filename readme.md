@@ -61,6 +61,40 @@ python main.py
 
 ---
 
+## Render Deployment
+
+JarvisX is primarily a Windows desktop assistant. Render runs Linux web services,
+so the hosted version uses `render_app.py` as a lightweight public status page
+and health-check service. Desktop-only features such as PyQt UI, microphone
+input, text-to-speech, and system automation should be run locally with
+`python main.py`.
+
+### Option A: Deploy with Blueprint
+1. Push this repository to GitHub.
+2. In Render, create a new Blueprint and select this repository.
+3. Render will read `render.yaml`.
+4. Add secret values in Render's Environment panel, not in source code.
+
+### Option B: Deploy as a Web Service
+Use these settings in Render:
+
+```text
+Runtime: Python
+Build Command: pip install -r requirements-render.txt
+Start Command: python render_app.py
+Health Check Path: /healthz
+```
+
+Optional environment variables:
+
+```text
+OPENAI_API_KEY
+POLLINATIONS_API_KEY
+WOLFRAM_ALPHA_APP_ID
+```
+
+---
+
 ## 📖 Usage Guide
 
 - **Voice Command**: Click the **"Voice Command"** button to toggle continuous listening. Jarvis will respond to your queries and execute system tasks.
