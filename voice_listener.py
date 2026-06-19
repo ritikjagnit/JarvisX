@@ -51,10 +51,14 @@ class VoiceListener:
                 if command:
                     print(f"[VOICE] Heard: {command}")
 
-                if self.wake_word and self.wake_word in command:
-                    command = command.replace(self.wake_word, "").strip()
-                    if not command:
-                        speak("Yes boss?")
+                if self.wake_word:
+                    if self.wake_word in command:
+                        command = command.replace(self.wake_word, "").strip()
+                        if not command:
+                            speak("Yes boss?")
+                            continue
+                    else:
+                        # Ignore command if wake word is not present
                         continue
 
                 if command:

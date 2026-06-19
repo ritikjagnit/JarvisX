@@ -376,11 +376,17 @@ class JarvisUltimate(QWidget):
         self.reactor = HolographicReactor()
         self.reactor.setMinimumSize(350, 350)
         
-        self.globe = HolographicGlobe()
-        self.globe.setMinimumSize(350, 250)
-        
-        left_panel.addWidget(self.reactor, 2)
-        left_panel.addWidget(self.globe, 1)
+        try:
+            from jarvis_vision_module import VisionWidget
+            self.vision_panel = VisionWidget()
+            self.vision_panel.setMinimumSize(350, 300)
+            left_panel.addWidget(self.reactor, 1)
+            left_panel.addWidget(self.vision_panel, 2)
+        except ImportError:
+            self.globe = HolographicGlobe()
+            self.globe.setMinimumSize(350, 250)
+            left_panel.addWidget(self.reactor, 2)
+            left_panel.addWidget(self.globe, 1)
         
         # Center Panel - Neural Network
         center_panel = QVBoxLayout()

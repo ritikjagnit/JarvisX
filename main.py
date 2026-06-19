@@ -93,7 +93,7 @@ class JarvisApp:
             self.worker.enqueue(cmd, source=source, priority=1)
             
         # Using standard listener (can swap to VoiceListenerVosk seamlessly here as needed)
-        self.voice_listener = VoiceListener(command_callback=voice_callback, wake_word="")
+        self.voice_listener = VoiceListener(command_callback=voice_callback, wake_word="jarvis")
 
         # UI connect (using custom wrapper for premium terminal styling)
         def add_to_chat(text):
