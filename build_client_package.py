@@ -3,50 +3,44 @@ import shutil
 import zipfile
 from pathlib import Path
 
-def clean_and_package():
+def clean_and_package(output_dir=None):
     """Purges all __pycache__, bytecode, temporary logs, and creates a clean client release ZIP."""
     project_root = Path(__file__).resolve().parent
-    release_dir = project_root.parent / "JarvisX_Client_Release"
-    zip_filename = project_root.parent / "JarvisX_Client_Release.zip"
+    
+    # Destination directory & zip
+    target_base = Path(output_dir) if output_dir else project_root
+    release_dir = target_base / "JarvisX_Client_Release"
+    zip_filename = target_base / "JarvisX_Client_Release.zip"
 
     print("========================================================")
     print("      JarvisX Clean Client Release Packaging Tool       ")
     print("========================================================")
 
-    # 1. Purge __pycache__ and bytecode in workspace
+    EXCLUDE_DIRS = {".git", ".venv", ".venv-1", "venv", "env", "__pycache__", "cache", ".idea", ".vscode", "JarvisX_Client_Release"}
+    EXCLUDE_EXTS = {".pyc", ".pyo", ".log", ".tmp", ".zip", ".pem", ".key"}
+    EXCLUDE_FILES = {"build_client_package.py", "test_qt_screen.jpg", "test_voice.mp3"}
+
+    # 1. Fast purge of __pycache__ and compiled bytecode outside excluded dirs
     pycache_count = 0
     pyc_count = 0
     for root, dirs, files in os.walk(project_root):
-        for d in dirs:
-            if d == "__pycache__":
-                full_path = os.path.join(root, d)
-                try:
-                    shutil.rmtree(full_path)
-                    pycache_count += 1
-                except Exception as e:
-                    print(f"Error removing {full_path}: {e}")
+        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
         for f in files:
             if f.endswith((".pyc", ".pyo", ".log")):
                 full_path = os.path.join(root, f)
                 try:
                     os.remove(full_path)
                     pyc_count += 1
-                except Exception as e:
-                    print(f"Error removing {full_path}: {e}")
+                except Exception:
+                    pass
 
-    print(f"[CLEAN] Purged {pycache_count} __pycache__ folders and {pyc_count} compiled bytecode files.")
-
-    # 2. Exclude patterns for distribution ZIP
-    EXCLUDE_DIRS = {".git", ".venv", ".venv-1", "__pycache__", "cache", ".idea", ".vscode"}
-    EXCLUDE_EXTS = {".pyc", ".pyo", ".log", ".tmp", ".zip"}
-    EXCLUDE_FILES = {"build_client_package.py"}
+    print(f"[CLEAN] Purged temporary compiled bytecode files.")
 
     if release_dir.exists():
         shutil.rmtree(release_dir)
 
     print(f"[BUILD] Copying clean source code to {release_dir.name}...")
     for root, dirs, files in os.walk(project_root):
-        # Modify dirs in-place to skip excluded directories
         dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
 
         rel_path = os.path.relpath(root, project_root)
@@ -60,7 +54,7 @@ def clean_and_package():
             dst_file = os.path.join(target_path, file)
             shutil.copy2(src_file, dst_file)
 
-    # 3. Create ZIP package
+    # 2. Create ZIP package
     print(f"[ZIP] Creating release ZIP archive: {zip_filename.name}...")
     if zip_filename.exists():
         os.remove(zip_filename)
@@ -72,10 +66,15 @@ def clean_and_package():
                 arcname = os.path.relpath(full_path, release_dir)
                 zipf.write(full_path, arcname)
 
+    # Cleanup temporary unzipped release folder
+    shutil.rmtree(release_dir, ignore_errors=True)
+
+    file_size_mb = zip_filename.stat().st_size / (1024 * 1024)
     print("========================================================")
-    print(f"SUCCESS! Clean Release Package created at:")
-    print(f" -> Archive: {zip_filename}")
+    print(f"SUCCESS! Clean Release Package created:")
+    print(f" -> Archive: {zip_filename} ({file_size_mb:.2f} MB)")
     print("========================================================")
+    return str(zip_filename)
 
 if __name__ == "__main__":
     clean_and_package()

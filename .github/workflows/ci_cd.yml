@@ -1,0 +1,87 @@
+name: JarvisX CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # -----------------------------------------------------------
+  # 1. SYNTAX & INTEGRITY VERIFICATION (CI)
+  # -----------------------------------------------------------
+  verify-and-lint:
+    name: Verify Code & Integrity
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install Linting & Core Build Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+
+      - name: Python Syntax & Compilation Check
+        run: |
+          python -m compileall -q .
+
+      - name: Lint with Flake8
+        run: |
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,venv,env,__pycache__,build,dist
+
+  # -----------------------------------------------------------
+  # 2. AUTOMATED PACKAGING & CONTINUOUS DELIVERY (CD)
+  # -----------------------------------------------------------
+  build-and-package:
+    name: Build & Package Client Release
+    needs: verify-and-lint
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Build Clean Client Release ZIP
+        run: |
+          python build_client_package.py
+
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JarvisX_Client_Release
+          path: JarvisX_Client_Release.zip
+          retention-days: 30
+
+      - name: Create GitHub Release (On Version Tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: JarvisX_Client_Release.zip
+          name: JarvisX Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -19,6 +19,7 @@ test_*.mp3
 test_qt_screen.jpg
 screenshot.png
 screenshot.jpg
+*.zip
 
 # SSL certificates and private keys
 *.pem
