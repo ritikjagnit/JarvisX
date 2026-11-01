@@ -785,5 +785,21 @@ class JarvisApp:
 # ---------------- ENTRY ----------------
 
 if __name__ == "__main__":
-    jarvis = JarvisApp()
-    jarvis.run()
+    try:
+        jarvis = JarvisApp()
+        jarvis.run()
+    except Exception as e:
+        import traceback
+        err_text = traceback.format_exc()
+        print("\n" + "="*55)
+        print("  [FATAL STARTUP ERROR] JarvisX failed to start:")
+        print("="*55)
+        print(err_text)
+        print("="*55)
+        try:
+            with open("startup_error.log", "w", encoding="utf-8") as f:
+                f.write(err_text)
+            print("[LOG] Detailed error written to startup_error.log")
+        except Exception:
+            pass
+        input("\nPress Enter to close window...")
