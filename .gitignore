@@ -5,8 +5,27 @@ __pycache__/
 *.pyd
 
 # Virtual environment
+.venv/
 venv/
 env/
+*.whl
+
+# Cached audio & test media
+jarvis_data/speech_*.mp3
+jarvis_data/air_canvas_drawings/
+test_*.jpg
+test_*.png
+test_*.mp3
+test_qt_screen.jpg
+screenshot.png
+screenshot.jpg
+
+# SSL certificates and private keys
+*.pem
+*.key
+
+# Sensitive user data & intruder snapshots
+jarvis_data/intruders/
 
 # Environment variables and local secrets (IMPORTANT)
 .env

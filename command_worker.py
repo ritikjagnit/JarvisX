@@ -9,11 +9,12 @@ class CommandWorker:
     It guarantees requests are instantly stored, prioritized, and executed efficiently
     without freezing the input collectors.
     """
-    def __init__(self, command_router_callback, response_callback=None):
+    def __init__(self, command_router_callback, response_callback=None, auth_guard=None):
         # Thread-safe PriorityQueue ensures high-priority items execute first
         self.cmd_queue = queue.PriorityQueue()
         self.command_router_callback = command_router_callback
         self.response_callback = response_callback
+        self.auth_guard = auth_guard
         self.is_running = True
         
         # Start Main Worker Thread
@@ -30,9 +31,20 @@ class CommandWorker:
         self.cmd_queue.put(item)
         print(f"[QUEUE] Task added: '{command}' | Source: {source} | Priority: {priority}")
 
-    def _execute_and_respond(self, command):
+    def _execute_and_respond(self, command, source):
         """ Runs the command synchronously within this execution thread, then dispatches result. """
-        response_text = self.command_router_callback(command)
+        if self.auth_guard and not self.auth_guard(command, source):
+            response_text = "Voice Authentication Failed: Speaker identity unverified."
+            print(f"[SECURITY ALERT] Blocked unauthenticated command: '{command}' (source: {source})")
+        else:
+            response_text = self.command_router_callback(command)
+
+        # Telemetry logging
+        try:
+            from analytics_logger import log_telemetry_command
+            log_telemetry_command(command, source=source)
+        except Exception as e:
+            print(f"[TELEMETRY ERROR] {e}")
         
         # 1. CENTRALIZE RESPONSE HANDLING
         if response_text and self.response_callback:
@@ -46,11 +58,18 @@ class CommandWorker:
                 priority, timestamp, command, source = self.cmd_queue.get()
                 print(f"[WORKER] Pulled task: '{command}' (Priority: {priority})")
                 
+                # Iron Man HUD Audio Acknowledge Chime
+                try:
+                    from jarvis_sfx import play_sfx
+                    play_sfx("ack")
+                except Exception:
+                    pass
+                
                 # Non-blocking executor pattern: 
                 # Execute in an isolated thread to immediately free up the worker to grab the next queue item.
                 threading.Thread(
                     target=self._execute_and_respond, 
-                    args=(command,), 
+                    args=(command, source), 
                     daemon=True,
                     name=f"ExecutionThread-{timestamp}"
                 ).start()

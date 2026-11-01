@@ -1,5 +1,6 @@
 import datetime
 import os
+import json
 import subprocess
 import webbrowser
 import time
@@ -18,9 +19,10 @@ from plugins.weather import get_weather
 from plugins.image_generator import process_image_command
 from plugins.letter_generator import generate_letter
 try:
-    from api_keys import OPENAI_API_KEY
+    from api_keys import OPENAI_API_KEY, GEMINI_API_KEY
 except ImportError:
     OPENAI_API_KEY = ""
+    GEMINI_API_KEY = ""
 
 
 # ---------------- OLLAMA ----------------
@@ -41,35 +43,125 @@ def respond(msg):
 # ---------------- AI ----------------
 
 def ask_ai(prompt):
-    """ Tries local Ollama first, then falls back to OpenAI if available. """
+    """ Tries local Ollama, Gemini, Wikipedia, and fail-safe backups. """
+    # Load language preference
+    lang_code = "en"
+    settings_path = os.path.join("jarvis_data", "voice_settings.json")
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                lang_code = json.load(f).get("language", "en")
+        except Exception:
+            lang_code = "en"
+
+    if lang_code == "hi":
+        lang_instruction = "You are SHRIVA AI, a friendly, ultra-smart AI companion for Shravani. Reply warmly, naturally, and conversationally in 1-2 short sentences in HINDI language (हिन्दी):"
+    elif lang_code == "mr":
+        lang_instruction = "You are SHRIVA AI, a friendly, ultra-smart AI companion for Shravani. Reply warmly, naturally, and conversationally in 1-2 short sentences in MARATHI language (मराठी):"
+    else:
+        lang_instruction = "You are SHRIVA AI, a friendly, ultra-smart AI companion for Shravani. Reply warmly, naturally, and conversationally in 1-2 short sentences in ENGLISH:"
+
+    full_prompt = f"{lang_instruction} {prompt}"
+
+    # 1. TRY GEMINI (Fast, Smart & Sub-Second Online AI)
+    if GEMINI_API_KEY:
+        for model_name in ["gemini-3.5-flash", "gemini-3.7-flash", "gemini-flash-latest"]:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+                headers = {"Content-Type": "application/json"}
+                payload = {
+                    "contents": [{"parts": [{"text": full_prompt}]}],
+                    "generationConfig": {"temperature": 0.7, "maxOutputTokens": 600}
+                }
+                res = requests.post(url, headers=headers, json=payload, timeout=4.0)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts:
+                            val = parts[0].get("text", "").strip()
+                            if val:
+                                return respond(val)
+            except Exception as ex:
+                print(f"[GEMINI ERROR] {model_name} failed: {ex}")
+                continue
+
+    # 2. TRY OLLAMA (Local Offline AI Backup)
     try:
-        # 1. TRY OLLAMA (Local)
         response = requests.post(
             OLLAMA_URL,
             json={
                 "model": MODEL,
-                "prompt": f"Answer short and clear: {prompt}",
+                "prompt": full_prompt,
                 "stream": False
             },
-            timeout=3 # Fast fail for local
+            timeout=1.5
         )
-        return respond(response.json().get("response", "No response"))
-    except:
-        # 2. FALLBACK TO OPENAI (Online)
-        if OPENAI_API_KEY:
-            try:
-                url = "https://api.openai.com/v1/chat/completions"
-                headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
-                data = {
-                    "model": "gpt-4o-mini",
-                    "messages": [{"role": "system", "content": "You are Jarvis, a helpful AI."}, {"role": "user", "content": prompt}]
-                }
-                res = requests.post(url, headers=headers, json=data, timeout=5)
-                return respond(res.json()["choices"][0]["message"]["content"])
-            except:
-                return respond("Ollama is offline and OpenAI failed. Check internet.")
-        
-        return respond("AI is not available right now (Ollama offline).")
+        if response.status_code == 200:
+            val = response.json().get("response", "").strip()
+            if val:
+                return respond(val)
+    except Exception:
+        pass
+
+    # 3. TRY WIKIPEDIA & DUCKDUCKGO KNOWLEDGE INSTANT API FALLBACK (ONLY IF EXPLICIT KNOWLEDGE INTENT PRESENT)
+    prompt_l = prompt.lower().strip()
+    knowledge_intents = ["what is", "who is", "tell me about", "define", "meaning of", "kya hai", "kaun hai", "kya h", "kaun h"]
+
+    if any(k in prompt_l for k in knowledge_intents):
+        try:
+            clean_query = prompt_l
+            for k in knowledge_intents:
+                clean_query = clean_query.replace(k, "")
+            clean_query = clean_query.strip()
+            
+            noise_queries = ["i am", "i'm", "i", "me", "am", "a", "an", "the", "is", "are"]
+            if clean_query and clean_query not in noise_queries:
+                # Try DuckDuckGo Instant Summary
+                ddg_url = f"https://api.duckduckgo.com/?q={quote_plus(clean_query)}&format=json"
+                ddg_res = requests.get(ddg_url, timeout=2.5)
+                if ddg_res.status_code == 200:
+                    abs_text = ddg_res.json().get("AbstractText")
+                    if abs_text:
+                        sentences = abs_text.split(". ")
+                        return respond(". ".join(sentences[:2]) + ".")
+
+                # Try Wikipedia Summary
+                wiki_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{quote_plus(clean_query.title().replace(' ', '_'))}"
+                headers = {"User-Agent": "IntelligentAI/1.0 (Shravani/IntelligentAI)"}
+                wres = requests.get(wiki_url, headers=headers, timeout=2.5)
+                if wres.status_code == 200:
+                    extract = wres.json().get("extract")
+                    if extract:
+                        sentences = extract.split(". ")
+                        concise_res = ". ".join(sentences[:2])
+                        if not concise_res.endswith("."): concise_res += "."
+                        return respond(concise_res)
+        except:
+            pass
+
+    # 4. DEFAULT HELPFUL FALLBACK ANSWER
+    lang_code = "en"
+    settings_path = os.path.join("jarvis_data", "voice_settings.json")
+    if os.path.exists(settings_path):
+        try:
+            with open(settings_path, "r", encoding="utf-8") as f:
+                lang_code = json.load(f).get("language", "en")
+        except Exception:
+            lang_code = "en"
+
+    if "who are you" in prompt.lower() or "your name" in prompt.lower():
+        if lang_code == "hi": return respond("मैं SHRIVA AI हूँ, आपका व्यक्तिगत AI सहायक।")
+        if lang_code == "mr": return respond("मी SHRIVA AI आहे, तुमचा वैयक्तिक AI सहाय्यक.")
+        return respond("I am SHRIVA AI, your personal AI assistant.")
+
+    if lang_code == "hi":
+        return respond("मैं SHRIVA AI हूँ। मैं आपकी आज्ञा के लिए तैयार हूँ, श्रावणी।")
+    elif lang_code == "mr":
+        return respond("मी SHRIVA AI आहे. मी तुमच्या आज्ञेसाठी सज्ज आहे, श्रावणी.")
+    else:
+        return respond("I am SHRIVA AI, ready for your commands, Shravani.")
 
 
 
@@ -84,30 +176,71 @@ API_KEY = OPENAI_API_KEY
 def write_letter(prompt):
     respond("Writing your document...")
 
+    content = None
+
+    # 1. Try Gemini
+    if GEMINI_API_KEY:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={GEMINI_API_KEY}"
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "contents": [{"parts": [{"text": f"Write a professional letter for: {prompt}. Only output the letter."}]}]
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=10)
+            if res.status_code == 200:
+                content = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                if content.startswith("```"):
+                    lines = content.splitlines()
+                    if lines[0].startswith("```"):
+                        lines = lines[1:]
+                    if lines and lines[-1].strip() == "```":
+                        lines = lines[:-1]
+                    content = "\n".join(lines).strip()
+        except:
+            pass
+
+    # 2. Try OpenAI fallback
+    if not content and OPENAI_API_KEY:
+        try:
+            url = "https://api.openai.com/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": "You are a professional letter writer."},
+                    {"role": "user", "content": f"Write a professional letter for: {prompt}. Only output the letter."}
+                ]
+            }
+            response = requests.post(url, headers=headers, json=data, timeout=10)
+            if response.status_code == 200:
+                content = response.json()["choices"][0]["message"]["content"].strip()
+        except:
+            pass
+
+    # 3. Try Pollinations fallback
+    if not content:
+        try:
+            url = "https://text.pollinations.ai/"
+            headers = {"Content-Type": "application/json"}
+            data = {
+                "messages": [
+                    {"role": "system", "content": "You are a professional letter writer."},
+                    {"role": "user", "content": f"Write a professional letter for: {prompt}. Only output the letter."}
+                ]
+            }
+            res = requests.post(url, headers=headers, json=data, timeout=10)
+            if res.status_code == 200:
+                content = res.text.strip()
+        except:
+            pass
+
+    if not content:
+        return respond("AI error. Check API key or internet.")
+
     try:
-        url = "https://api.openai.com/v1/chat/completions"
-
-        headers = {
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        data = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "system", "content": "You are a professional letter writer."},
-                {"role": "user", "content": f"Write a professional letter for: {prompt}. Only output the letter."}
-            ]
-        }
-
-        response = requests.post(url, headers=headers, json=data)
-
-        if response.status_code != 200:
-            return respond("AI error. Check API key or internet.")
-
-        result = response.json()
-        content = result["choices"][0]["message"]["content"]
-
         # Save in Documents
         documents_path = os.path.join(os.path.expanduser("~"), "Documents")
         filename = os.path.join(documents_path, f"letter_{int(time.time())}.txt")

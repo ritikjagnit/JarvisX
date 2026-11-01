@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Intelligent AI Mobile OS</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#050816">
+</head>
+<body>
+    <div id="app">
+        <!-- TOP HEADER -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="icon">⚡</span>
+                <div class="title-group">
+                    <h1>SHRIVA AI</h1>
+                    <span class="subtitle">Remote AI OS</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span id="conn-status" class="badge online">● Connected</span>
+                <button id="lock-btn" class="icon-btn">🔒</button>
+            </div>
+        </header>
+
+        <!-- MAIN VIEW CONTAINER -->
+        <main class="content-area">
+            <!-- VIEW 1: DASHBOARD & TELEMETRY -->
+            <section id="view-dashboard" class="tab-view active">
+                <div class="hero-card">
+                    <div class="reactor-ring">
+                        <div class="core-orb"></div>
+                    </div>
+                    <h2>SHRIVA AI CORE</h2>
+                    <p class="status-text">Desktop AI Online & Ready</p>
+                    <div class="hero-actions">
+                        <button id="quick-voice-btn" class="btn primary">🎙️ Speak Command</button>
+                    </div>
+                </div>
+
+                <div class="section-title">Live Telemetry</div>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <span class="m-label">CPU Load</span>
+                        <span id="cpu-val" class="m-val">12%</span>
+                        <div class="progress-bar"><div id="cpu-bar" class="fill" style="width: 12%;"></div></div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="m-label">RAM Usage</span>
+                        <span id="ram-val" class="m-val">44%</span>
+                        <div class="progress-bar"><div id="ram-bar" class="fill purple" style="width: 44%;"></div></div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="m-label">Disk Space</span>
+                        <span id="disk-val" class="m-val">68%</span>
+                        <div class="progress-bar"><div id="disk-bar" class="fill emerald" style="width: 68%;"></div></div>
+                    </div>
+                    <div class="metric-card">
+                        <span class="m-label">Battery</span>
+                        <span id="bat-val" class="m-val">100%</span>
+                        <div class="progress-bar"><div id="bat-bar" class="fill blue" style="width: 100%;"></div></div>
+                    </div>
+                </div>
+
+                <div class="section-title">AI Module Quick Triggers</div>
+                <div class="tools-grid">
+                    <button onclick="triggerModule('face dossier')" class="tool-btn">📷 Face Dossier</button>
+                    <button onclick="triggerModule('ocr reader')" class="tool-btn">🔍 OCR Reader</button>
+                    <button onclick="triggerModule('resume analyzer')" class="tool-btn">📄 Resume Analyzer</button>
+                    <button onclick="triggerModule('duplicate finder')" class="tool-btn">📁 File Cleaner</button>
+                    <button onclick="triggerModule('cyber vault')" class="tool-btn">🔐 Cyber Vault</button>
+                    <button onclick="triggerModule('screenshot analysis')" class="tool-btn">🖼️ Screenshot AI</button>
+                </div>
+            </section>
+
+            <!-- VIEW 2: AI CHAT -->
+            <section id="view-chat" class="tab-view">
+                <div id="chat-messages" class="chat-container">
+                    <div class="msg jarvis">
+                        <span class="sender">Intelligent AI • Just now</span>
+                        <div class="bubble">Hello! I am Intelligent AI. How can I assist your desktop remotely?</div>
+                    </div>
+                </div>
+                <div class="chat-input-bar">
+                    <input type="text" id="chat-input" placeholder="Ask Intelligent AI anything..." />
+                    <button id="send-chat-btn" class="btn primary">⚡</button>
+                </div>
+            </section>
+
+            <!-- VIEW 3: REMOTE CONTROL & SCREEN MIRROR -->
+            <section id="view-remote" class="tab-view">
+                <div class="remote-tabs">
+                    <button id="tab-touchpad-btn" class="sub-tab active" onclick="switchRemoteMode('touchpad')">Trackpad</button>
+                    <button id="tab-screen-btn" class="sub-tab" onclick="switchRemoteMode('screen')">Screen Mirror</button>
+                    <button id="tab-power-btn" class="sub-tab" onclick="switchRemoteMode('power')">Power & Apps</button>
+                </div>
+
+                <!-- TRACKPAD MODE -->
+                <div id="mode-touchpad" class="remote-mode-panel active">
+                    <div id="touchpad-surface" class="trackpad-surface">
+                        <span>Swipe finger to move mouse<br>Tap to click • 2-finger scroll</span>
+                    </div>
+                    <div class="mouse-buttons">
+                        <button onclick="sendRemoteInput('left_click')" class="btn secondary">Left Click</button>
+                        <button onclick="sendRemoteInput('right_click')" class="btn secondary">Right Click</button>
+                    </div>
+                    <div class="keyboard-input-group">
+                        <input type="text" id="remote-keyboard-input" placeholder="Type text to send to PC..." />
+                        <button onclick="sendRemoteText()" class="btn primary">Send Text</button>
+                    </div>
+                </div>
+
+                <!-- SCREEN MIRROR MODE -->
+                <div id="mode-screen" class="remote-mode-panel">
+                    <div class="screen-container">
+                        <img id="screen-mirror-img" src="" alt="Live PC Screen Mirror Stream..." />
+                    </div>
+                    <div class="screen-controls">
+                        <button onclick="startScreenMirror()" class="btn primary">▶ Stream Screen</button>
+                        <button onclick="stopScreenMirror()" class="btn secondary">⏹ Stop Stream</button>
+                    </div>
+                </div>
+
+                <!-- POWER & APPS MODE -->
+                <div id="mode-power" class="remote-mode-panel">
+                    <div class="power-grid">
+                        <button onclick="sendPowerCommand('shutdown')" class="pwr-btn danger">🛑 Shutdown PC</button>
+                        <button onclick="sendPowerCommand('restart')" class="pwr-btn warning">🔄 Restart PC</button>
+                        <button onclick="sendPowerCommand('lock')" class="pwr-btn info">🔒 Lock PC</button>
+                        <button onclick="sendPowerCommand('mute')" class="pwr-btn secondary">🔇 Mute Audio</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW 4: FILE MANAGER -->
+            <section id="view-files" class="tab-view">
+                <div class="file-header">
+                    <span id="current-path">Documents</span>
+                    <button onclick="fetchFiles('')" class="btn secondary sm">Refresh</button>
+                </div>
+                <div id="file-list" class="file-list-container">
+                    <!-- Dynamic File Rows -->
+                </div>
+            </section>
+
+            <!-- VIEW 5: AUTOMATION & SETTINGS -->
+            <section id="view-settings" class="tab-view">
+                <div class="section-title">Automations</div>
+                <div class="automation-card">
+                    <h3>⚡ Auto Shutdown after Download</h3>
+                    <p>Turns off desktop when long active downloads complete.</p>
+                </div>
+                <div class="section-title">Paired Device Security</div>
+                <div class="setting-row">
+                    <span>Device Binding</span>
+                    <span class="status-green">Active (AES-256)</span>
+                </div>
+                <div class="setting-row">
+                    <span>Server Endpoint</span>
+                    <span id="server-url-display">https://192.168.31.24:8443</span>
+                </div>
+            </section>
+        </main>
+
+        <!-- BOTTOM NAVIGATION BAR -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchNavTab('dashboard')">
+                <span class="icon">📊</span>
+                <span class="label">Home</span>
+            </button>
+            <button class="nav-item" onclick="switchNavTab('chat')">
+                <span class="icon">💬</span>
+                <span class="label">Chat</span>
+            </button>
+            <button class="nav-item" onclick="switchNavTab('remote')">
+                <span class="icon">🖥️</span>
+                <span class="label">Remote</span>
+            </button>
+            <button class="nav-item" onclick="switchNavTab('files')">
+                <span class="icon">📁</span>
+                <span class="label">Files</span>
+            </button>
+            <button class="nav-item" onclick="switchNavTab('settings')">
+                <span class="icon">⚙️</span>
+                <span class="label">Settings</span>
+            </button>
+        </nav>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

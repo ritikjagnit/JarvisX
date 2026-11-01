@@ -30,7 +30,8 @@ def process_image_command(command):
     prompt = prompt.strip()
 
     if not prompt:
-        speak("What image should I generate, Boss?")
+        speak("What image should I generate, Shravani?")
+
         return "Please specify an image prompt."
 
     response = f"Generating and downloading image for {prompt}. Please wait..."
@@ -39,7 +40,7 @@ def process_image_command(command):
     # Using Pollinations.ai (Flux model)
     import random
     seed = random.randint(1, 1000000)
-    image_url = f"https://pollinations.ai/p/{quote(prompt)}?width=1080&height=1080&seed={seed}&model=flux"
+    image_url = f"https://image.pollinations.ai/prompt/{quote(prompt)}?width=1080&height=1080&seed={seed}&nologo=true"
     
     try:
         # Simulate a real browser request to avoid being blocked or getting low-quality/corrupted data

@@ -326,12 +326,14 @@ class PremiumTerminal(QTextEdit):
         else:
             self.append(f'<span style="color: #ffaa00; font-weight: bold;">[{timestamp}] {sender}:</span> <span style="color: #ffffff;">{message}</span>')
 
-# ---------------- MAIN JARVIS UI ----------------
-class JarvisUI(QWidget):
+# ---------------- MAIN INTELLIGENT AI UI (REDIRECT TO NEW ENTERPRISE UI) ----------------
+from ui.dashboard import JarvisUltimate as JarvisUI, start_ultimate_jarvis
+
+class LegacyJarvisUI(QWidget):
     def __init__(self):
         super().__init__()
         
-        self.setWindowTitle("J.A.R.V.I.S ULTIMATE")
+        self.setWindowTitle("INTELLIGENT AI ULTIMATE")
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         
         # Get screen size

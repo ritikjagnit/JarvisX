@@ -8,11 +8,14 @@ JARVIS-PY is a premium, high-performance voice-activated AI assistant designed t
 ## ✨ Key Features
 
 - **🎙️ Voice & Text Intelligence**: High-accuracy speech recognition (Google/Vosk) and responsive text commands.
+- **🔐 Biometric Face Recognition Login**: A secure, futuristic login gate using OpenCV and `face_recognition`. It blocks access to the JARVIS dashboard until the registered face is authenticated. Allows seamless registration of new faces on first boot.
 - **🚥 Priority Command Queue**: Advanced multitasking system that handles multiple requests simultaneously without blocking the UI.
 - **🖥️ System Automation**: Launch applications, close processes, perform system-wide scans, and monitor metrics with simple voice commands.
 - **🌐 Deep Search Integration**: Integrated web search and browser control via `browser_control.py`.
 - **🛡️ Privacy & Security**: Local audit logging with AES encryption and privacy-focused data management.
 - **🎨 Premium UI/UX**: State-of-the-art PyQt6 dashboard featuring a slick "Iron Man" inspired aesthetic, dynamic terminal output, and micro-animations.
+- **📸 AI Screenshot Analysis**: Instantly captures a screenshot of your screen and uses Gemini Vision (or OpenAI GPT-4o-mini fallback) to explain what is currently displayed, translate text, or answer complex visual questions via voice commands.
+
 
 ---
 
@@ -42,7 +45,8 @@ cd jarvis_py
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies
+# Install dependencies (For Windows, install the precompiled dlib binary package first)
+pip install dlib-bin
 pip install -r requirements.txt
 ```
 
@@ -52,6 +56,7 @@ Copy `.env.example` to `.env` and add your local keys there. Never commit real A
 OPENAI_API_KEY=your_openai_api_key_here
 POLLINATIONS_API_KEY=
 WOLFRAM_ALPHA_APP_ID=
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ### 4. Run Jarvis
@@ -91,6 +96,7 @@ Optional environment variables:
 OPENAI_API_KEY
 POLLINATIONS_API_KEY
 WOLFRAM_ALPHA_APP_ID
+GEMINI_API_KEY
 ```
 
 ---
@@ -122,4 +128,4 @@ WOLFRAM_ALPHA_APP_ID
 This project is licensed under the MIT License.
 
 ---
-*Built with ❤️ by the Ritik Jagnit*
+*Built with ❤️ for Shravani*

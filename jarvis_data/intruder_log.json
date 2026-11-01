@@ -1,0 +1,163 @@
+[
+    {
+        "id": "20260911_211620",
+        "timestamp": "2026-09-11 21:16:20",
+        "image_path": "jarvis_data\\intruders\\intruder_20260911_211620.jpg",
+        "confidence": 39,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260729_185424",
+        "timestamp": "2026-07-29 18:54:24",
+        "image_path": "jarvis_data\\intruders\\intruder_20260729_185424.jpg",
+        "confidence": 37,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260723_164906",
+        "timestamp": "2026-07-23 16:49:06",
+        "image_path": "jarvis_data\\intruders\\intruder_20260723_164906.jpg",
+        "confidence": 30,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260723_155352",
+        "timestamp": "2026-07-23 15:53:52",
+        "image_path": "jarvis_data\\intruders\\intruder_20260723_155352.jpg",
+        "confidence": 34,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260723_155238",
+        "timestamp": "2026-07-23 15:52:38",
+        "image_path": "jarvis_data\\intruders\\intruder_20260723_155238.jpg",
+        "confidence": 27,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260723_154832",
+        "timestamp": "2026-07-23 15:48:32",
+        "image_path": "jarvis_data\\intruders\\intruder_20260723_154832.jpg",
+        "confidence": 38,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260723_153919",
+        "timestamp": "2026-07-23 15:39:19",
+        "image_path": "jarvis_data\\intruders\\intruder_20260723_153919.jpg",
+        "confidence": 31,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260723_125649",
+        "timestamp": "2026-07-23 12:56:49",
+        "image_path": "jarvis_data\\intruders\\intruder_20260723_125649.jpg",
+        "confidence": 34,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260723_124823",
+        "timestamp": "2026-07-23 12:48:23",
+        "image_path": "jarvis_data\\intruders\\intruder_20260723_124823.jpg",
+        "confidence": 26,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260723_124434",
+        "timestamp": "2026-07-23 12:44:34",
+        "image_path": "jarvis_data\\intruders\\intruder_20260723_124434.jpg",
+        "confidence": 45,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_124856",
+        "timestamp": "2026-07-22 12:48:56",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_124856.jpg",
+        "confidence": 31,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_094622",
+        "timestamp": "2026-07-22 09:46:22",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_094622.jpg",
+        "confidence": 17,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_094558",
+        "timestamp": "2026-07-22 09:45:58",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_094558.jpg",
+        "confidence": 44,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_003521",
+        "timestamp": "2026-07-22 00:35:21",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_003521.jpg",
+        "confidence": 47,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_003430",
+        "timestamp": "2026-07-22 00:34:30",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_003430.jpg",
+        "confidence": 43,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_003343",
+        "timestamp": "2026-07-22 00:33:43",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_003343.jpg",
+        "confidence": 47,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_003250",
+        "timestamp": "2026-07-22 00:32:50",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_003250.jpg",
+        "confidence": 44,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_003233",
+        "timestamp": "2026-07-22 00:32:33",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_003233.jpg",
+        "confidence": 39,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_003129",
+        "timestamp": "2026-07-22 00:31:29",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_003129.jpg",
+        "confidence": 25,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_003106",
+        "timestamp": "2026-07-22 00:31:06",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_003106.jpg",
+        "confidence": 29,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_002849",
+        "timestamp": "2026-07-22 00:28:49",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_002849.jpg",
+        "confidence": 45,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_002819",
+        "timestamp": "2026-07-22 00:28:19",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_002819.jpg",
+        "confidence": 49,
+        "status": "UNRESOLVED_INTRUDER"
+    },
+    {
+        "id": "20260722_002243",
+        "timestamp": "2026-07-22 00:22:43",
+        "image_path": "jarvis_data\\intruders\\intruder_20260722_002243.jpg",
+        "confidence": 85,
+        "status": "UNRESOLVED_INTRUDER"
+    }
+]

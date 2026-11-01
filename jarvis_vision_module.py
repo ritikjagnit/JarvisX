@@ -5,7 +5,13 @@ from PyQt6.QtCore import QThread, pyqtSignal, Qt, QTimer
 from PyQt6.QtGui import QImage, QPixmap, QFont
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QFrame
 
-import mediapipe as mp
+try:
+    import mediapipe as mp
+    MEDIAPIPE_AVAILABLE = True
+except ImportError:
+    mp = None
+    MEDIAPIPE_AVAILABLE = False
+
 import threading
 from voice_engine import speak
 
@@ -19,14 +25,18 @@ class VisionWorker(QThread):
         self.camera_index = 0
         
         # Mediapipe setup
-        self.mp_face = mp.solutions.face_detection
-        self.mp_hands = mp.solutions.hands
-        self.mp_pose = mp.solutions.pose
-        self.mp_drawing = mp.solutions.drawing_utils
-        
-        self.face_detection = self.mp_face.FaceDetection(min_detection_confidence=0.5)
-        self.hands = self.mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
-        self.pose = self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+        self.mediapipe_available = MEDIAPIPE_AVAILABLE
+        if self.mediapipe_available:
+            self.mp_face = mp.solutions.face_detection
+            self.mp_hands = mp.solutions.hands
+            self.mp_pose = mp.solutions.pose
+            self.mp_drawing = mp.solutions.drawing_utils
+            
+            self.face_detection = self.mp_face.FaceDetection(min_detection_confidence=0.5)
+            self.hands = self.mp_hands.Hands(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+            self.pose = self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+        else:
+            self.face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
         
         # Deepface setup
         self.deepface_available = False
@@ -68,93 +78,102 @@ class VisionWorker(QThread):
             posture = "Unknown"
             motion = "No movement detected"
             
-            # 2. Face Detection
-            face_results = self.face_detection.process(rgb_frame)
-            if face_results.detections:
-                active = True
-                for detection in face_results.detections:
-                    self.mp_drawing.draw_detection(frame, detection)
-                    
-                # 3. Emotion Detection (Throttled to 1s to save CPU)
-                current_time = time.time()
-                if self.deepface_available and current_time - self.last_emotion_time > 1.0:
-                    try:
-                        # Non-blocking emotion detection
-                        if not hasattr(self, 'emotion_thread') or not self.emotion_thread.is_alive():
-                            def detect_emotion(img):
-                                try:
-                                    res = self.DeepFace.analyze(img, actions=['emotion'], enforce_detection=False)
-                                    if res:
-                                        emo = res[0]['dominant_emotion']
-                                        conf = res[0]['emotion'][emo]
-                                        self.current_raw_emotion = emo.capitalize()
-                                        self.current_emotion = f"{emo.capitalize()} ({int(conf)}%)"
-                                except Exception:
-                                    pass
-                            self.emotion_thread = threading.Thread(target=detect_emotion, args=(rgb_frame.copy(),), daemon=True)
-                            self.emotion_thread.start()
-                    except Exception:
-                        pass
-                    self.last_emotion_time = current_time
-            
-            # 4. Gesture / Hands
-            hand_results = self.hands.process(rgb_frame)
-            if hand_results.multi_hand_landmarks:
-                active = True
-                for hand_landmarks in hand_results.multi_hand_landmarks:
-                    self.mp_drawing.draw_landmarks(frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
-                    
-                    thumb_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.THUMB_TIP]
-                    index_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.INDEX_FINGER_TIP]
-                    middle_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.MIDDLE_FINGER_TIP]
-                    
-                    if thumb_tip.y < index_tip.y - 0.1:
-                        gestures.append("Thumbs up")
-                    elif index_tip.y < middle_tip.y - 0.1:
-                        if index_tip.y < thumb_tip.y:
-                            gestures.append("Pointing")
+            # 2. Face & Object Detection
+            if self.mediapipe_available:
+                face_results = self.face_detection.process(rgb_frame)
+                if face_results.detections:
+                    active = True
+                    for detection in face_results.detections:
+                        self.mp_drawing.draw_detection(frame, detection)
+                        
+                    # 3. Emotion Detection (Throttled to 1s to save CPU)
+                    current_time = time.time()
+                    if self.deepface_available and current_time - self.last_emotion_time > 1.0:
+                        try:
+                            # Non-blocking emotion detection
+                            if not hasattr(self, 'emotion_thread') or not self.emotion_thread.is_alive():
+                                def detect_emotion(img):
+                                    try:
+                                        res = self.DeepFace.analyze(img, actions=['emotion'], enforce_detection=False)
+                                        if res:
+                                            emo = res[0]['dominant_emotion']
+                                            conf = res[0]['emotion'][emo]
+                                            self.current_raw_emotion = emo.capitalize()
+                                            self.current_emotion = f"{emo.capitalize()} ({int(conf)}%)"
+                                    except Exception:
+                                        pass
+                                self.emotion_thread = threading.Thread(target=detect_emotion, args=(rgb_frame.copy(),), daemon=True)
+                                self.emotion_thread.start()
+                        except Exception:
+                            pass
+                        self.last_emotion_time = current_time
+                
+                # 4. Gesture / Hands
+                hand_results = self.hands.process(rgb_frame)
+                if hand_results.multi_hand_landmarks:
+                    active = True
+                    for hand_landmarks in hand_results.multi_hand_landmarks:
+                        self.mp_drawing.draw_landmarks(frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
+                        
+                        thumb_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.THUMB_TIP]
+                        index_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.INDEX_FINGER_TIP]
+                        middle_tip = hand_landmarks.landmark[self.mp_hands.HandLandmark.MIDDLE_FINGER_TIP]
+                        
+                        if thumb_tip.y < index_tip.y - 0.1:
+                            gestures.append("Thumbs up")
+                        elif index_tip.y < middle_tip.y - 0.1:
+                            if index_tip.y < thumb_tip.y:
+                                gestures.append("Pointing")
+                            else:
+                                gestures.append("Raised hand")
+                        elif index_tip.y < thumb_tip.y and middle_tip.y < thumb_tip.y:
+                            gestures.append("Victory sign")
                         else:
-                            gestures.append("Raised hand")
-                    elif index_tip.y < thumb_tip.y and middle_tip.y < thumb_tip.y:
-                        gestures.append("Victory sign")
-                    else:
-                        gestures.append("Hand wave")
-            
-            # 5. Posture & Motion
-            pose_results = self.pose.process(rgb_frame)
-            if pose_results.pose_landmarks:
-                active = True
-                landmarks = pose_results.pose_landmarks.landmark
-                self.mp_drawing.draw_landmarks(frame, pose_results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
+                            gestures.append("Hand wave")
                 
-                nose = landmarks[self.mp_pose.PoseLandmark.NOSE.value]
-                l_shoulder = landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value]
-                r_shoulder = landmarks[self.mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
-                
-                # Motion
-                if self.prev_nose_x is not None:
-                    dx = nose.x - self.prev_nose_x
-                    dy = nose.y - self.prev_nose_y
-                    if abs(dx) > 0.05:
-                        motion = "User moved right" if dx > 0 else "User moved left"
-                    elif abs(dy) > 0.05:
-                        motion = "User moved down" if dy > 0 else "User moved up"
+                # 5. Posture & Motion
+                pose_results = self.pose.process(rgb_frame)
+                if pose_results.pose_landmarks:
+                    active = True
+                    landmarks = pose_results.pose_landmarks.landmark
+                    self.mp_drawing.draw_landmarks(frame, pose_results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
                     
-                self.prev_nose_x = nose.x
-                self.prev_nose_y = nose.y
-                
-                # Posture
-                shoulder_y = (l_shoulder.y + r_shoulder.y) / 2
-                if shoulder_y > 0.8:
-                    posture = "Slouching"
-                elif nose.y > shoulder_y + 0.1:
-                    posture = "Sleeping"
-                elif shoulder_y < 0.5:
-                    posture = "Standing"
+                    nose = landmarks[self.mp_pose.PoseLandmark.NOSE.value]
+                    l_shoulder = landmarks[self.mp_pose.PoseLandmark.LEFT_SHOULDER.value]
+                    r_shoulder = landmarks[self.mp_pose.PoseLandmark.RIGHT_SHOULDER.value]
+                    
+                    # Motion
+                    if self.prev_nose_x is not None:
+                        dx = nose.x - self.prev_nose_x
+                        dy = nose.y - self.prev_nose_y
+                        if abs(dx) > 0.05:
+                            motion = "User moved right" if dx > 0 else "User moved left"
+                        elif abs(dy) > 0.05:
+                            motion = "User moved down" if dy > 0 else "User moved up"
+                        
+                    self.prev_nose_x = nose.x
+                    self.prev_nose_y = nose.y
+                    
+                    # Posture
+                    shoulder_y = (l_shoulder.y + r_shoulder.y) / 2
+                    if shoulder_y > 0.8:
+                        posture = "Slouching"
+                    elif nose.y > shoulder_y + 0.1:
+                        posture = "Sleeping"
+                    elif shoulder_y < 0.5:
+                        posture = "Standing"
+                    else:
+                        posture = "Sitting"
                 else:
-                    posture = "Sitting"
+                    self.prev_nose_x = None
+                    self.prev_nose_y = None
             else:
-                self.prev_nose_x = None
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                faces = self.face_cascade.detectMultiScale(gray, 1.1, 4)
+                if len(faces) > 0:
+                    active = True
+                    for (x, y, w, h) in faces:
+                        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 255), 2)
                 self.prev_nose_y = None
                 if not active:
                     motion = "User not in frame"

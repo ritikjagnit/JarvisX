@@ -5,9 +5,10 @@ import time
 from voice_engine import speak
 
 try:
-    from api_keys import OPENAI_API_KEY
+    from api_keys import OPENAI_API_KEY, GEMINI_API_KEY
 except ImportError:
     OPENAI_API_KEY = ""
+    GEMINI_API_KEY = ""
 
 def process_code_command(command):
     cmd_lower = command.lower()
@@ -22,35 +23,78 @@ def process_code_command(command):
     if not any(trigger in cmd_lower for trigger in generate_triggers):
         return None
 
-    if not OPENAI_API_KEY:
-        return "I need an OpenAI API key to generate code, Boss."
-
     speak("Sure, let me generate that code for you...")
 
-    # Refine prompt for OpenAI
+    # Refine prompt
     prompt = f"Write the code for {command}. Only provide the code, no explanation, no markdown backticks."
 
+    code_content = None
+
+    # 1. Try Gemini
+    if GEMINI_API_KEY:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={GEMINI_API_KEY}"
+            headers = {"Content-Type": "application/json"}
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}]
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=10)
+            if res.status_code == 200:
+                code_content = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                # Clean up any potential markdown code blocks wrapped around the text
+                if code_content.startswith("```"):
+                    lines = code_content.splitlines()
+                    if lines[0].startswith("```"):
+                        lines = lines[1:]
+                    if lines and lines[-1].strip() == "```":
+                        lines = lines[:-1]
+                    code_content = "\n".join(lines).strip()
+        except Exception as e:
+            print(f"[CODE GEN GEMINI ERROR] {e}")
+
+    # 2. Try OpenAI
+    if not code_content and OPENAI_API_KEY:
+        try:
+            url = "https://api.openai.com/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            data = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": "You are a senior developer. Output only raw code."},
+                    {"role": "user", "content": prompt}
+                ]
+            }
+            response = requests.post(url, headers=headers, json=data, timeout=10)
+            if response.status_code == 200:
+                result = response.json()
+                code_content = result["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            print(f"[CODE GEN OPENAI ERROR] {e}")
+
+    # 3. Try Pollinations (Free Fail-safe Backup)
+    if not code_content:
+        try:
+            url = "https://text.pollinations.ai/"
+            headers = {"Content-Type": "application/json"}
+            data = {
+                "messages": [
+                    {"role": "system", "content": "You are a senior developer. Output only raw code. No markdown backticks."},
+                    {"role": "user", "content": prompt}
+                ]
+            }
+            res = requests.post(url, headers=headers, json=data, timeout=10)
+            if res.status_code == 200:
+                code_content = res.text.strip()
+        except Exception as e:
+            print(f"[CODE GEN POLLINATIONS ERROR] {e}")
+
+    if not code_content:
+        return "Something went wrong while generating the code. Please check your internet connection."
+
     try:
-        url = "https://api.openai.com/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {OPENAI_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "system", "content": "You are a senior developer. Output only raw code."},
-                {"role": "user", "content": prompt}
-            ]
-        }
-        
-        response = requests.post(url, headers=headers, json=data)
-        if response.status_code != 200:
-            return "Failed to connect to AI server."
-
-        result = response.json()
-        code_content = result["choices"][0]["message"]["content"]
-
         # Determine extension
         ext = "txt"
         if "html" in cmd_lower: ext = "html"

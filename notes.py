@@ -17,7 +17,8 @@ def save_note(text):
 def trigger_reminder(message, seconds):
     time.sleep(seconds)
     print(f"\n[DEBUG-REMINDER] Executing reminder event: {message}")
-    speak(f"Reminder Alert Boss! {message}")
+    speak(f"Reminder Alert Shravani! {message}")
+
 
 def process_notes_command(command):
     # Reminder feature (Background Thread Wait)

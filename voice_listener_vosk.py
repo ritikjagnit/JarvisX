@@ -60,7 +60,7 @@ class VoiceListenerVosk:
 
         self.is_listening = True
         print(f"[DEBUG] VOSK Offline Continuous listening online. Wake word: '{self.wake_word}'")
-        speak("Offline voice processing systems initialized.")
+        print("[DEBUG] Offline voice processing systems calibrated silently.")
 
         # CONTINUOUS LISTENING LOOP
         while self.is_listening:
@@ -85,8 +85,9 @@ class VoiceListenerVosk:
                             if self.wake_word in text:
                                 command = text.replace(self.wake_word, "").strip()
                                 if not command:
-                                    speak("Yes boss?")
+                                    speak("Yes Shravani?")
                                     continue
+
                             else:
                                 # Not waking, ignore completely
                                 continue

@@ -4,7 +4,7 @@ import json
 
 def process_system_command(command):
     # Lock PC
-    if "lock the system" in command or "lock my pc" in command:
+    if any(k in command for k in ["lock pc", "lock the system", "lock my pc", "lock system", "pc lock"]):
         ctypes.windll.user32.LockWorkStation()
         return "System locked."
 
@@ -54,7 +54,8 @@ def process_system_command(command):
         if not os.path.exists("jarvis_data"): os.makedirs("jarvis_data")
         with open(settings_path, "w") as f:
             json.dump({"voice_index": 1}, f)
-        return "Voice status updated. I have switched to a female profile. How do I sound, Boss?"
+        return "Voice status updated. I have switched to a female profile. How do I sound, Shravani?"
+
 
     if "male voice" in command or "boy voice" in command:
         settings_path = os.path.join("jarvis_data", "voice_settings.json")
