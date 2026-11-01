@@ -19,6 +19,10 @@ test_*.mp3
 test_qt_screen.jpg
 screenshot.png
 screenshot.jpg
+# Build and distribution
+build/
+dist/
+*.spec
 *.zip
 
 # SSL certificates and private keys

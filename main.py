@@ -14,6 +14,10 @@ if hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
+if getattr(sys, 'frozen', False):
+    # PyInstaller runtime: ensure working directory is where the exe resides
+    os.chdir(os.path.dirname(os.path.abspath(sys.executable)))
+
 # ---------------- BOOTSTRAP ----------------
 def _bootstrap_local_site_packages():
     # If already running inside an active virtual environment, do not override
