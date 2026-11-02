@@ -21,12 +21,13 @@ DRAWINGS_DIR = os.path.join("jarvis_data", "air_canvas_drawings")
 
 class AirCanvasTrackingThread(QThread):
     """
-    Advanced Optical Fingertip Tracker.
+    High-Performance Touchless Optical Fingertip Tracker.
     Features:
-    1. Automatic Face Masking: Prevents user's face from contaminating hand detection.
-    2. Broad YCrCb + HSV Multi-Lighting Skin Segmentation: Works in warm, cool, and dim rooms.
-    3. Normalized Hand Geometry: Accurately identifies drawing finger at any distance from laptop.
-    4. Real-time PIP HUD Camera Feed generation with cyber visual diagnostics.
+    1. Precision Elliptical Face Masking: Eliminates face skin contamination WITHOUT blocking the chest or hands.
+    2. Adaptive Multi-Spectrum Skin Detection: Works reliably under warm, white LED, and dim lighting.
+    3. Auto-Draw Default: Draws immediately when hand is moved, with 1-click Gesture Hover Mode.
+    4. Anti-Jitter EMA Smoothing & Gap Detection: Smooth laser curves without jagged lines.
+    5. Real-time PIP HUD Camera Feed generation with cyber visual diagnostics.
     """
     # x, y, is_drawing, camera_thumb, status_text
     point_tracked = pyqtSignal(int, int, bool, QImage, str)
@@ -35,7 +36,7 @@ class AirCanvasTrackingThread(QThread):
         super().__init__(parent)
         self.camera_index = camera_index
         self.running = False
-        self.force_always_draw = False  # When True, draws whenever hand is seen
+        self.force_always_draw = True  # Auto-Draw by default for instant responsive sketching
         screen = QGuiApplication.primaryScreen()
         geom = screen.geometry() if screen else None
         self.screen_w = geom.width() if geom else 1920
@@ -86,14 +87,14 @@ class AirCanvasTrackingThread(QThread):
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 480)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 
-        margin_x = 40
-        margin_y = 35
+        margin_x = 30
+        margin_y = 25
         prev_x, prev_y = self.screen_w // 2, self.screen_h // 2
 
         frame_idx = 0
         face_box = None  # (top, right, bottom, left)
 
-        print("[AIR-CANVAS] Optical Hand & Fingertip Tracking Thread ONLINE.")
+        print("[AIR-CANVAS] High-Performance Optical Fingertip Tracker ONLINE.")
 
         while self.running:
             ret, frame = cap.read()
@@ -102,14 +103,14 @@ class AirCanvasTrackingThread(QThread):
                 continue
 
             frame_idx += 1
-            frame = cv2.flip(frame, 1)  # Mirror so right movement is right
+            frame = cv2.flip(frame, 1)  # Mirror frame so right movement moves right
             h, w, _ = frame.shape
 
-            # 1. Periodic Face Detection to eliminate Face-Skin contamination
-            if frame_idx % 12 == 1:
+            # 1. Periodic Face Detection to isolate face without lagging (every 16 frames on downscaled image)
+            if frame_idx % 16 == 1:
                 try:
                     small_rgb = cv2.resize(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), (160, 120))
-                    faces = face_recognition.face_locations(small_rgb)
+                    faces = face_recognition.face_locations(small_rgb, model="hog")
                     if faces:
                         # Scale 160x120 back to 480x360 (ratio 3.0)
                         top, right, bottom, left = faces[0]
@@ -119,81 +120,85 @@ class AirCanvasTrackingThread(QThread):
                 except Exception:
                     face_box = None
 
-            # 2. Broad YCrCb + HSV Multi-Lighting Skin Segmentation
+            # 2. Broad Multi-Lighting Skin Segmentation (YCrCb + HSV)
             ycrcb = cv2.cvtColor(frame, cv2.COLOR_BGR2YCrCb)
-            mask_ycrcb = cv2.inRange(ycrcb, np.array([0, 128, 68]), np.array([255, 185, 135]))
+            mask_ycrcb = cv2.inRange(ycrcb, np.array([0, 133, 77]), np.array([255, 175, 128]))
 
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            mask_hsv = cv2.inRange(hsv, np.array([0, 25, 40]), np.array([28, 240, 255]))
+            mask_hsv = cv2.inRange(hsv, np.array([0, 28, 40]), np.array([25, 240, 255]))
 
             mask = cv2.bitwise_or(mask_ycrcb, mask_hsv)
-            mask = cv2.GaussianBlur(mask, (5, 5), 0)
 
-            # 3. Mask out Face & Neck if detected
+            # 3. Mask out ONLY the Face Ellipse if detected (NEVER wipe out chest/hand space!)
             if face_box:
                 t, r, b, l = face_box
-                # Blackout from top of frame through neck
-                cv2.rectangle(
-                    mask,
-                    (max(0, l - 35), 0),
-                    (min(w, r + 35), min(h, b + 55)),
-                    0,
-                    -1
-                )
-                # Visual guide on debug preview
-                cv2.rectangle(
-                    frame,
-                    (max(0, l - 35), 0),
-                    (min(w, r + 35), min(h, b + 55)),
-                    (60, 60, 60),
-                    1
-                )
+                face_cx = (l + r) // 2
+                face_cy = (t + b) // 2
+                face_rx = int((r - l) * 0.58)
+                face_ry = int((b - t) * 0.65)
+                # Blackout only the face oval
+                cv2.ellipse(mask, (face_cx, face_cy), (face_rx, face_ry), 0, 0, 360, 0, -1)
+                # Visual ring on camera preview
+                cv2.ellipse(frame, (face_cx, face_cy), (face_rx, face_ry), 0, 0, 360, (70, 70, 70), 1)
+
+            # Morphological noise cleaning
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_DILATE, kernel, iterations=2)
+            mask = cv2.GaussianBlur(mask, (5, 5), 0)
 
             # 4. Find Hand Contours
             contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
             target_point = None
             is_drawing = False
-            status_text = "⚠️ NO HAND DETECTED"
+            status_text = "⚠️ RAISE HAND IN FRONT OF CAM"
+            draw_color = (0, 240, 255)
 
             if contours and len(contours) > 0:
-                # Find largest skin contour outside face
-                max_cnt = max(contours, key=cv2.contourArea)
-                area = cv2.contourArea(max_cnt)
+                # Filter out contours located inside the face region
+                valid_contours = []
+                for cnt in contours:
+                    area = cv2.contourArea(cnt)
+                    if area > 650:
+                        M = cv2.moments(cnt)
+                        if M["m00"] > 0:
+                            cx = int(M["m10"] / M["m00"])
+                            cy = int(M["m01"] / M["m00"])
+                            if face_box:
+                                t, r, b, l = face_box
+                                face_cx = (l + r) // 2
+                                face_cy = (t + b) // 2
+                                if math.hypot(cx - face_cx, cy - face_cy) < (r - l) * 0.62:
+                                    continue
+                            valid_contours.append((cnt, area, cx, cy))
 
-                if area > 800:
+                if valid_contours:
+                    # Pick largest hand contour
+                    max_cnt, area, cx, cy = max(valid_contours, key=lambda item: item[1])
+
                     # Fingertip is the topmost point of the hand contour
                     topmost = tuple(max_cnt[max_cnt[:, :, 1].argmin()][0])
                     fx, fy = topmost
 
-                    # Hand centroid
-                    M = cv2.moments(max_cnt)
-                    if M["m00"] > 0:
-                        cx = int(M["m10"] / M["m00"])
-                        cy = int(M["m01"] / M["m00"])
-                    else:
-                        cx, cy = fx, fy + 40
-
-                    # Bounding box
                     bx, by, bw, bh = cv2.boundingRect(max_cnt)
-                    vert_ext = cy - fy
-                    vert_ratio = vert_ext / float(bh + 1e-5)
+                    dist_to_top = cy - fy
 
                     # Drawing vs Hovering decision:
                     if self.force_always_draw:
                         is_drawing = True
-                        status_text = "✍️ DRAWING [ALWAYS-ON]"
-                        draw_color = (0, 255, 136)
-                    elif vert_ratio > 0.30 or vert_ext > 22:
-                        # Pointing Index Finger
-                        is_drawing = True
-                        status_text = "✍️ DRAWING (Finger Point)"
-                        draw_color = (0, 255, 136) # Neon Green
+                        status_text = "✍️ DRAWING (Auto-Draw Active)"
+                        draw_color = (0, 255, 136) # Bright Neon Green
                     else:
-                        # Lowered hand or open palm
-                        is_drawing = False
-                        status_text = "👁️ HOVERING (Move/Open Palm)"
-                        draw_color = (255, 200, 0) # Cyan/Yellow
+                        # Gesture mode: Index finger extended
+                        if dist_to_top > 16 or (dist_to_top / float(bh + 1e-5)) > 0.18:
+                            is_drawing = True
+                            status_text = "✍️ DRAWING (Finger Point)"
+                            draw_color = (0, 255, 136)
+                        else:
+                            is_drawing = False
+                            status_text = "👁️ HOVERING (Repositioning)"
+                            draw_color = (0, 240, 255)
 
                     # Map coordinates to screen resolution
                     clamped_x = max(margin_x, min(w - margin_x, fx))
@@ -205,19 +210,19 @@ class AirCanvasTrackingThread(QThread):
                     target_x = int(norm_x * self.screen_w)
                     target_y = int(norm_y * self.screen_h)
 
-                    # Smooth interpolation
-                    curr_x = int(prev_x + 0.42 * (target_x - prev_x))
-                    curr_y = int(prev_y + 0.42 * (target_y - prev_y))
+                    # Smooth Exponential Moving Average interpolation
+                    curr_x = int(prev_x + 0.52 * (target_x - prev_x))
+                    curr_y = int(prev_y + 0.52 * (target_y - prev_y))
                     prev_x, prev_y = curr_x, curr_y
                     target_point = (curr_x, curr_y)
 
-                    # Draw visual diagnostic markers on frame
+                    # Draw visual diagnostic markers on debug frame
                     cv2.drawContours(frame, [max_cnt], -1, draw_color, 1)
-                    cv2.circle(frame, (fx, fy), 6, draw_color, -1)
-                    cv2.circle(frame, (fx, fy), 12, draw_color, 1)
+                    cv2.circle(frame, (fx, fy), 7, draw_color, -1)
+                    cv2.circle(frame, (fx, fy), 14, draw_color, 1)
                     cv2.line(frame, (cx, cy), (fx, fy), (255, 255, 255), 1)
 
-            # 5. Generate PIP Thumbnail (160x120) with cyber status
+            # 5. Generate PIP Thumbnail (160x120) with cyber diagnostic overlay
             thumb_bgr = cv2.resize(frame, (160, 120))
             thumb_rgb = cv2.cvtColor(thumb_bgr, cv2.COLOR_BGR2RGB)
             qimg = QImage(
@@ -250,7 +255,7 @@ class AirCanvasWindow(QDialog):
     Features:
     - Glowing neon laser trails with dynamic outer bloom.
     - Live Cyber PIP Camera HUD in bottom-right corner.
-    - Gesture Draw vs Always-Draw toggle (Spacebar).
+    - Auto-Draw by default: immediate sketch on finger movement.
     - Full color palette, eraser mode, clear, save PNG, and mouse fallback.
     """
     def __init__(self, parent=None):
@@ -274,7 +279,7 @@ class AirCanvasWindow(QDialog):
 
         # Mode & Colors
         self.is_eraser = False
-        self.always_draw = False
+        self.always_draw = True  # DEFAULT TO TRUE: User can draw immediately without fiddling!
         self.active_color = QColor(0, 240, 255, 245)     # Arc Reactor Cyan
         self.active_glow = QColor(0, 180, 255, 90)
         self.active_brush_size = 5
@@ -282,19 +287,20 @@ class AirCanvasWindow(QDialog):
         # PIP Camera HUD state
         self.show_pip = True
         self.latest_thumb = None
-        self.latest_status = "INITIALIZING SENSORS..."
+        self.latest_status = "INITIALIZING OPTICAL SENSORS..."
 
         # Mouse drawing fallback state
         self.mouse_drawing = False
 
         # Start Camera Tracking Thread
         self.tracker = AirCanvasTrackingThread()
+        self.tracker.force_always_draw = self.always_draw
         self.tracker.point_tracked.connect(self._on_point_tracked)
         self.tracker.start()
 
         self._init_top_bar()
         play_sfx("ack")
-        speak("Air Canvas Online. Point your index finger to sketch in the air.")
+        speak("Air Canvas Online. Move your finger in front of the camera to draw.")
 
     def _init_top_bar(self):
         layout = QVBoxLayout(self)
@@ -345,8 +351,9 @@ class AirCanvasWindow(QDialog):
                 color: #bf55ec;
             }
             QPushButton#btn_mode {
-                border-color: #38bdf8;
-                color: #38bdf8;
+                border-color: #00ff88;
+                color: #00ff88;
+                background: rgba(0, 255, 136, 0.16);
             }
             QPushButton#btn_eraser {
                 border-color: #f59e0b;
@@ -394,8 +401,8 @@ class AirCanvasWindow(QDialog):
 
         bar_layout.addSpacing(10)
 
-        # Draw Mode Toggle (Gesture vs Always Draw)
-        self.btn_mode = QPushButton("☝️ GESTURE DRAW [SPACE]")
+        # Draw Mode Toggle (Auto-Draw vs Gesture Mode)
+        self.btn_mode = QPushButton("✏️ AUTO-DRAW: ON [SPACE]")
         self.btn_mode.setObjectName("btn_mode")
         self.btn_mode.clicked.connect(self.toggle_draw_mode)
         bar_layout.addWidget(self.btn_mode)
@@ -442,18 +449,22 @@ class AirCanvasWindow(QDialog):
         if self.tracker:
             self.tracker.force_always_draw = self.always_draw
         if self.always_draw:
-            self.btn_mode.setText("✏️ ALWAYS DRAW [SPACE]")
-            self.btn_mode.setStyleSheet("border-color: #00ff88; color: #00ff88;")
+            self.btn_mode.setText("✏️ AUTO-DRAW: ON [SPACE]")
+            self.btn_mode.setStyleSheet("border-color: #00ff88; color: #00ff88; background: rgba(0, 255, 136, 0.16);")
         else:
-            self.btn_mode.setText("☝️ GESTURE DRAW [SPACE]")
-            self.btn_mode.setStyleSheet("")
+            self.btn_mode.setText("☝️ GESTURE MODE [SPACE]")
+            self.btn_mode.setStyleSheet("border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.16);")
+        play_sfx("ack")
 
     def toggle_eraser(self):
         self.is_eraser = not self.is_eraser
         if self.is_eraser:
             self.btn_eraser.setText("✏️ PEN MODE [E]")
+            self.btn_eraser.setStyleSheet("border-color: #00ff88; color: #00ff88;")
         else:
             self.btn_eraser.setText("🧽 ERASER [E]")
+            self.btn_eraser.setStyleSheet("")
+        play_sfx("ack")
 
     def toggle_pip(self):
         self.show_pip = not self.show_pip
@@ -469,7 +480,18 @@ class AirCanvasWindow(QDialog):
             self.is_drawing_active = is_drawing
 
             if is_drawing:
-                self.current_stroke.append(pt)
+                # Prevent large teleport lines if hand moved far across frame
+                if self.current_stroke and (pt - self.current_stroke[-1]).manhattanLength() > 260:
+                    self.strokes.append((
+                        self.active_color,
+                        self.active_glow,
+                        self.is_eraser,
+                        list(self.current_stroke)
+                    ))
+                    self.current_stroke.clear()
+
+                if not self.current_stroke or (pt - self.current_stroke[-1]).manhattanLength() >= 2:
+                    self.current_stroke.append(pt)
             else:
                 if self.current_stroke:
                     self.strokes.append((
@@ -530,8 +552,19 @@ class AirCanvasWindow(QDialog):
 
         # 2. Render all past strokes
         def _draw_stroke(core_col, glow_col, is_erase, pts):
-            if len(pts) < 2:
+            if len(pts) < 1:
                 return
+            if len(pts) == 1:
+                if is_erase:
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QBrush(QColor(5, 10, 22, 255)))
+                    painter.drawEllipse(pts[0], 14, 14)
+                else:
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QBrush(core_col))
+                    painter.drawEllipse(pts[0], 5, 5)
+                return
+
             path = QPainterPath()
             path.moveTo(pts[0])
             for p in pts[1:]:
@@ -539,17 +572,17 @@ class AirCanvasWindow(QDialog):
 
             if is_erase:
                 # Eraser: cuts through canvas with background shade
-                pen_erase = QPen(QColor(5, 10, 22, 255), 24, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+                pen_erase = QPen(QColor(5, 10, 22, 255), 26, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
                 painter.setPen(pen_erase)
                 painter.drawPath(path)
             else:
                 # Outer Glow Bloom
-                pen_glow = QPen(glow_col, 14, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+                pen_glow = QPen(glow_col, 16, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
                 painter.setPen(pen_glow)
                 painter.drawPath(path)
 
                 # Core Bright Laser Line
-                pen_core = QPen(core_col, 4, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+                pen_core = QPen(core_col, 5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
                 painter.setPen(pen_core)
                 painter.drawPath(path)
 
@@ -569,34 +602,34 @@ class AirCanvasWindow(QDialog):
             )
 
             # Outer ring
-            painter.setPen(QPen(ret_col, 1.5))
+            painter.setPen(QPen(ret_col, 1.8))
             painter.setBrush(Qt.BrushStyle.NoBrush)
-            painter.drawEllipse(self.current_tip, 16, 16)
+            painter.drawEllipse(self.current_tip, 18, 18)
 
             # Inner pulsing dot
-            painter.setBrush(QBrush(QColor(ret_col.red(), ret_col.green(), ret_col.blue(), 180)))
+            painter.setBrush(QBrush(QColor(ret_col.red(), ret_col.green(), ret_col.blue(), 190)))
             painter.drawEllipse(self.current_tip, 5, 5)
 
             # Laser Crosshairs
             painter.setPen(QPen(ret_col, 1, Qt.PenStyle.DashLine))
-            painter.drawLine(tx - 24, ty, tx - 18, ty)
-            painter.drawLine(tx + 18, ty, tx + 24, ty)
-            painter.drawLine(tx, ty - 24, tx, ty - 18)
-            painter.drawLine(tx, ty + 18, tx, ty + 24)
+            painter.drawLine(tx - 26, ty, tx - 20, ty)
+            painter.drawLine(tx + 20, ty, tx + 26, ty)
+            painter.drawLine(tx, ty - 26, tx, ty - 20)
+            painter.drawLine(tx, ty + 20, tx, ty + 26)
 
         # 5. PIP Live Camera HUD Box (Bottom-Right Corner)
         if self.show_pip and self.latest_thumb:
-            pw, ph = 180, 135
+            pw, ph = 190, 142
             px = self.width() - pw - 25
             py = self.height() - ph - 25
 
             # Backdrop
             painter.setPen(QPen(QColor(0, 240, 255, 180), 1.5))
-            painter.setBrush(QColor(10, 16, 30, 230))
+            painter.setBrush(QColor(10, 16, 30, 235))
             painter.drawRoundedRect(px, py, pw, ph, 8, 8)
 
             # Live Thumbnail Image
-            thumb_rect = QRect(px + 10, py + 10, 160, 95)
+            thumb_rect = QRect(px + 10, py + 10, 170, 102)
             painter.drawImage(thumb_rect, self.latest_thumb)
 
             # Status Badge
@@ -605,7 +638,7 @@ class AirCanvasWindow(QDialog):
             )
             painter.setPen(badge_color)
             painter.setFont(QFont("Consolas", 8, QFont.Weight.Bold))
-            painter.drawText(px + 10, py + 122, self.latest_status)
+            painter.drawText(px + 10, py + 128, self.latest_status)
 
     def clear_canvas(self):
         self.strokes.clear()

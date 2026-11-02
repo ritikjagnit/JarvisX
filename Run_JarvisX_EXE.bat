@@ -12,3 +12,4 @@ if not exist "JarvisX.exe" (
 )
 start "" "JarvisX.exe"
 exit
+
