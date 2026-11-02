@@ -15,6 +15,11 @@ from PyQt6.QtWidgets import (
     QProgressBar, QFrame, QMessageBox, QFileDialog, QApplication
 )
 
+try:
+    import api_keys
+except Exception:
+    pass
+
 MEETING_DIR = os.path.join("jarvis_data", "meeting_notes")
 
 def ensure_meeting_dirs():

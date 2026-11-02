@@ -8,6 +8,11 @@ from duckduckgo_search import DDGS
 from offline_cache import check_internet_conn, search_local, update_local_cache, get_cached_response
 
 try:
+    import api_keys
+except Exception:
+    pass
+
+try:
     import wikipediaapi
     wiki_wiki = wikipediaapi.Wikipedia(
         user_agent='JarvisWebSearchEngine/1.0 (jarvis@assistant.com)',

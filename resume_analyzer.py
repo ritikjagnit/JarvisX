@@ -12,6 +12,11 @@ from PyQt6.QtWidgets import (
     QProgressBar, QFrame, QMessageBox, QFileDialog, QTabWidget, QApplication, QGraphicsDropShadowEffect
 )
 
+try:
+    import api_keys
+except Exception:
+    pass
+
 RESUME_DIR = os.path.join("jarvis_data", "resumes")
 
 def ensure_resume_dir():

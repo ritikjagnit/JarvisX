@@ -106,6 +106,12 @@ def build():
                 if src.exists() and not dst.exists():
                     shutil.copytree(src, dst)
 
+            # Copy configuration and environment credentials
+            for cfg_file in [".env", "search_config.json"]:
+                cfg_src = project_root / cfg_file
+                if cfg_src.exists():
+                    shutil.copy2(cfg_src, exe_folder / cfg_file)
+
             # Also create zip for distribution
             zip_out = dist_dir / "JarvisX_Windows_Setup.zip"
             print(f"\n[ZIP] Creating release distribution ZIP: {zip_out.name}...")

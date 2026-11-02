@@ -13,6 +13,11 @@ from PyQt6.QtWidgets import (
     QButtonGroup, QRadioButton, QGraphicsDropShadowEffect
 )
 
+try:
+    import api_keys
+except Exception:
+    pass
+
 INTERVIEW_DIR = os.path.join("jarvis_data", "interviews")
 
 def ensure_interview_dir():

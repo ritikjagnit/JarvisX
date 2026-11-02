@@ -14,6 +14,11 @@ from PyQt6.QtWidgets import (
     QProgressBar, QFrame, QMessageBox, QFileDialog, QTabWidget, QApplication, QGraphicsDropShadowEffect
 )
 
+try:
+    import api_keys
+except Exception:
+    pass
+
 NEWS_DIR = os.path.join("jarvis_data", "news_research")
 
 def ensure_news_dir():

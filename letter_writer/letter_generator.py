@@ -11,7 +11,7 @@ from pathlib import Path
 try:
     from api_keys import GEMINI_API_KEY
 except ImportError:
-    GEMINI_API_KEY = ""
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 from memory import get_memory, load_memory
 from .letter_intent import is_letter_command, parse_letter_intent

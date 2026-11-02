@@ -21,8 +21,8 @@ from plugins.letter_generator import generate_letter
 try:
     from api_keys import OPENAI_API_KEY, GEMINI_API_KEY
 except ImportError:
-    OPENAI_API_KEY = ""
-    GEMINI_API_KEY = ""
+    OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 
 # ---------------- OLLAMA ----------------

@@ -22,6 +22,11 @@ from PyQt6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QHeaderView, QCheckBox, QSpinBox, QGraphicsDropShadowEffect
 )
 
+try:
+    import api_keys
+except Exception:
+    pass
+
 VAULT_DIR = os.path.join("jarvis_data", "vault")
 VAULT_FILE = os.path.join(VAULT_DIR, "cyber_vault.enc")
 SALT_FILE = os.path.join(VAULT_DIR, "vault_salt.bin")
@@ -76,8 +81,10 @@ def load_and_decrypt_vault(passphrase: str = "JARVIS_BIOMETRIC_MASTER_KEY"):
             {"service": "Google Cloud", "username": "shravani@gmail.com", "password": "GCloud_Admin_Token_#99", "notes": "AI Infrastructure"}
         ],
         "api_keys": [
-            {"provider": "Gemini AI", "key": os.environ.get("GEMINI_API_KEY", "AIzaSy_JARVIS_DEMO_KEY"), "notes": "Primary LLM Engine"},
-            {"provider": "OpenAI", "key": "sk-proj-JARVIS_OPENAI_KEY_DEMO", "notes": "Fallback Vision API"}
+            {"provider": "Gemini AI", "key": os.environ.get("GEMINI_API_KEY", ""), "notes": "Primary LLM Engine"},
+            {"provider": "OpenAI", "key": os.environ.get("OPENAI_API_KEY", ""), "notes": "Secondary Code & Vision Engine"},
+            {"provider": "Wolfram Alpha", "key": os.environ.get("WOLFRAM_ALPHA_APP_ID", ""), "notes": "Scientific & Math Computation Engine"},
+            {"provider": "Pollinations AI", "key": os.environ.get("POLLINATIONS_API_KEY", ""), "notes": "Free Generative Image AI"}
         ],
         "notes": [
             {"title": "Vault Master Recovery", "content": "Keep biometric face and voice profiles updated in jarvis_data/biometrics/."}

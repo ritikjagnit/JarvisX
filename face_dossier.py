@@ -14,6 +14,11 @@ from PyQt6.QtWidgets import (
     QProgressBar, QFrame, QMessageBox, QFileDialog, QGraphicsDropShadowEffect, QApplication
 )
 
+try:
+    import api_keys
+except Exception:
+    pass
+
 DOSSIER_DIR = os.path.join("jarvis_data", "dossiers")
 PROFILE_FILE = os.path.join(DOSSIER_DIR, "dossier_profiles.json")
 

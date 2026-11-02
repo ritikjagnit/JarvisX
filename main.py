@@ -38,6 +38,12 @@ def _bootstrap_local_site_packages():
 
 _bootstrap_local_site_packages()
 
+# ---------------- PRODUCTION API KEYS & ENV ----------------
+try:
+    import api_keys
+except Exception as e:
+    print(f"[BOOT WARNING] Error initializing api_keys: {e}")
+
 # WINDOWS DPI AWARENESS FIX
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(2) # Per-monitor DPI awareness

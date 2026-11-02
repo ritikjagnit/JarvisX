@@ -8,7 +8,7 @@ from voice_engine import speak
 try:
     from api_keys import POLLINATIONS_API_KEY
 except ImportError:
-    POLLINATIONS_API_KEY = ""
+    POLLINATIONS_API_KEY = os.environ.get("POLLINATIONS_API_KEY", "")
 
 def process_image_command(command):
     # Normalize command
