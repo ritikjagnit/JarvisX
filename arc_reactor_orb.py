@@ -109,6 +109,7 @@ class ArcReactorOrb(QWidget):
 
         act_hud = menu.addAction("📊 Holographic HUD (Mark VII)")
         act_vision = menu.addAction("👁️‍🗨️ Multimodal Screen Vision")
+        act_coder = menu.addAction("💻 Autonomous AI Coder (VS Code)")
         act_game = menu.addAction("🎮 Stark Repulsor Strike (Air-Game)")
         act_gaze = menu.addAction("👁️ Eye-Gaze Attention Lock")
         act_canvas = menu.addAction("🎨 Air-Canvas Laser Writer")
@@ -129,6 +130,15 @@ class ArcReactorOrb(QWidget):
             self.trigger_action.emit("HOLOGRAPHIC_HUD_ENGAGE")
         elif chosen == act_vision:
             self.trigger_action.emit("what is on my screen")
+        elif chosen == act_coder:
+            from PyQt6.QtWidgets import QInputDialog
+            task, ok = QInputDialog.getText(
+                None, "SHRIVA AI - Autonomous AI Coder",
+                "What software, website, or script do you want Jarvis to code and open in VS Code?",
+                text="Create a modern portfolio website with dark theme and glassmorphism"
+            )
+            if ok and task.strip():
+                self.trigger_action.emit(task.strip())
         elif chosen == act_game:
             self.trigger_action.emit("REPULSOR_GAME_OPEN")
         elif chosen == act_gaze:

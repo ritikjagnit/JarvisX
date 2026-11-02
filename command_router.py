@@ -100,6 +100,13 @@ class CommandRouter:
                 if res:
                     return res
 
+            # Autonomous AI Coder / DevJarvis (Full-Stack Website & App Generation in VS Code)
+            from coder_agent import is_coding_command, process_coding_command
+            if is_coding_command(command):
+                res = process_coding_command(command, status_callback=self.ui_callback)
+                if res:
+                    return res
+
             
             # 0.0 Autonomous AI Agent Multi-Step Goal Execution
             if any(k in command for k in [
